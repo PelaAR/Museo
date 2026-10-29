@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Fósiles - Museo 3D</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- El script de model-viewer solo se carga donde se necesita -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Catálogo de Piezas</h1>
+        <a href="index.html" class="btn-secundario">Volver al Inicio</a>
+    </header>
+
+    <!-- Usamos un contenedor grid para alinear las tarjetas -->
+    <main class="galeria-grid">
+
+        <!-- Tarjeta del Modelo 1 (El Pato de prueba) -->
+        <section class="pieza-exhibicion">
+            <h2>Modelo de Prueba 1</h2>
+            <model-viewer src="assets/modelos/Duck.glb" auto-rotate camera-controls></model-viewer>
+        </section>
+
+        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <section class="pieza-exhibicion">
+            <h2>Modelo de Prueba 2</h2>
+            <model-viewer src="assets/modelos/CesiumMan.glb" auto-rotate camera-controls></model-viewer>
+        </section>
+
+
+        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <section class="pieza-exhibicion">
+            <h2>Modelo de Prueba 2</h2>
+            <model-viewer src="assets/modelos/fosil__tengkorak_macaca.glb" auto-rotate camera-controls></model-viewer>
+        </section>
+
+
+        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <section class="pieza-exhibicion">
+            <h2>Modelo de Prueba 2</h2>
+            <model-viewer src="assets/modelos/montsecosuchus_depereti.glb" auto-rotate camera-controls></model-viewer>
+        </section>
+
+
+        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <section class="pieza-exhibicion">
+            <h2>Modelo de Prueba 2</h2>
+            <model-viewer src="assets/modelos/sarcosuchus_imperator.glb" auto-rotate camera-controls></model-viewer>
+        </section>
+
+
+        <!-- Puedes copiar y pegar el bloque <section> para añadir más modelos -->
+
+    </main>
+</body>
+
+</html>

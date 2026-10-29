@@ -3,99 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <!-- Meta viewport indispensable para que se vea bien en celulares -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Museo Virtual de Dinosaurios</title>
-
-    <!-- Importar el componente model-viewer de Google -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
-
-    <!-- Enlace a la hoja de estilos externa -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body>
+<body class="landing-body">
+    <div class="hero-section">
+        <h1>Explora el Pasado en 3D</h1>
+        <p>Bienvenido al proyecto interactivo universitario de paleontología. Descubre piezas fósiles escaneadas desde
+            tu pantalla o sumérgete en nuestra sala inmersiva utilizando lentes de Realidad Virtual.</p>
 
-    <header>
-        <h1>Museo Virtual de Dinosaurios</h1>
-        <a href="museo-vr.html" class="btn-vr">Ponte los lentes: Entrar al Museo VR</a>
-    </header>
-
-    <main>
-        <section class="pieza-exhibicion">
-            <h2>Cráneo de T-Rex (Muestra)</h2>
-
-            <div class="visor-container">
-                <!-- Se añaden los atributos requeridos: rotación, controles, gestos móviles y sombras -->
-                <model-viewer id="visor-3d" src="assets/modelos/Duck.glb" alt="Modelo 3D de exhibición" auto-rotate
-                    camera-controls touch-action="pan-y" shadow-intensity="1">
-
-                    <!-- El botón se coloca DENTRO del contenedor para que la API de pantalla completa lo incluya -->
-                    <button class="btn-fullscreen" id="btn-fullscreen">Pantalla Completa</button>
-                </model-viewer>
-            </div>
-
-            <p><strong>Descripción:</strong> Esta pieza representa un modelo escaneado en 3D. Utiliza el mouse o tus
-                dedos para rotar el modelo, hacer zoom o desplazarlo. Presiona el botón de "Pantalla Completa" para una
-                inspección detallada del espécimen.</p>
-        </section>
-
-
-        <section class="pieza-exhibicion">
-            <h2>Cráneo de T-Rex (Muestra)</h2>
-
-            <div class="visor-container">
-                <!-- Se añaden los atributos requeridos: rotación, controles, gestos móviles y sombras -->
-                <model-viewer id="visor-3d" src="assets/modelos/CesiumMan.glb" alt="Modelo 3D de exhibición" auto-rotate
-                    camera-controls touch-action="pan-y" shadow-intensity="1">
-
-                    <!-- El botón se coloca DENTRO del contenedor para que la API de pantalla completa lo incluya -->
-                    <button class="btn-fullscreen" id="btn-fullscreen">Pantalla Completa</button>
-                </model-viewer>
-            </div>
-
-            <p><strong>Descripción:</strong> Esta pieza representa un modelo escaneado en 3D. Utiliza el mouse o tus
-                dedos para rotar el modelo, hacer zoom o desplazarlo. Presiona el botón de "Pantalla Completa" para una
-                inspección detallada del espécimen.</p>
-        </section>
-
-
-
-
-
-
-
-    </main>
-
-    <!-- Script de Vanilla JavaScript para controlar la Pantalla Completa -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const visor3D = document.getElementById('visor-3d');
-            const btnFullscreen = document.getElementById('btn-fullscreen');
-
-            btnFullscreen.addEventListener('click', () => {
-                // Comprobamos si ya estamos en pantalla completa
-                if (!document.fullscreenElement) {
-                    // Si no estamos, pedimos al navegador que ponga el model-viewer en pantalla completa
-                    visor3D.requestFullscreen().catch(err => {
-                        console.error(`Error al intentar modo pantalla completa: ${err.message}`);
-                    });
-                } else {
-                    // Si ya estamos, salimos del modo pantalla completa
-                    document.exitFullscreen();
-                }
-            });
-
-            // Opcional: Cambiar el texto del botón cuando el usuario presiona "Esc" para salir
-            document.addEventListener('fullscreenchange', () => {
-                if (document.fullscreenElement) {
-                    btnFullscreen.textContent = 'Salir de Pantalla Completa';
-                } else {
-                    btnFullscreen.textContent = 'Pantalla Completa';
-                }
-            });
-        });
-    </script>
+        <div class="botones-hero">
+            <a href="catalogo.html" class="btn-secundario">Ver Catálogo de Modelos</a>
+            <a href="museo-vr.html" class="btn-vr">Entrar al Museo VR</a>
+        </div>
+    </div>
 </body>
 
 </html>
