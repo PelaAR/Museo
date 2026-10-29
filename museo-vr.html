@@ -32,6 +32,12 @@
     <!-- Todo lo contenido en a-scene es procesado por la GPU para WebXR -->
     <a-scene background="color: #121212">
 
+        <a-assets>
+            <!-- Asegúrate de cambiar "modelo1.glb" y "modelo2.glb" por los nombres reales -->
+            <a-asset-item id="pieza1" src="assets/modelos/Duck.glb"></a-asset-item>
+            <a-asset-item id="pieza2" src="assets/modelos/CesiumMan.glb"></a-asset-item>
+        </a-assets>
+
         <!-- 1. Sistema de Cámara y Movimiento (Rig) -->
         <!-- Se envuelve la cámara en un "Rig" para desplazar el cuerpo sin sobreescribir el giroscopio -->
         <a-entity id="cameraRig" position="0 0 0">
@@ -46,8 +52,11 @@
 
         <!-- 2. El Entorno 3D -->
         <!-- Aquí cargarás tu habitacion.glb. Por ahora usamos figuras geométricas de prueba -->
-        <a-box position="0 1 -5" width="2" height="2" depth="2" color="#d84315"></a-box>
-        <a-cylinder position="4 1 -3" radius="0.5" height="2" color="#ffca28"></a-cylinder>
+        <!-- Colocamos el primer modelo a la izquierda (-2 en X) y a 4 metros de distancia (-4 en Z) -->
+        <a-entity gltf-model="#pieza1" position="-2 0 -4" scale="1 1 1"></a-entity>
+
+        <!-- Colocamos el segundo modelo a la derecha (2 en X) y a la misma distancia -->
+        <a-entity gltf-model="#pieza2" position="2 0 -4" scale="1 1 1"></a-entity>
 
         <!-- 3. Los Suelos -->
         <!-- Suelo visual estético (Gris oscuro) -->
