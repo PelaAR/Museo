@@ -1,6 +1,102 @@
 <!doctype html>
 <html lang="es">
   <head>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      /* Desactivar por completo la pantalla celeste de A-Frame */
+      .a-loader-title {
+        display: none !important;
+      }
+
+      /* Contenedor de la pantalla de carga del Museo */
+      #pantalla-carga {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 50% 35%, #1c2236 0%, #0b0d13 75%);
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #f1f3f5;
+        font-family: 'Inter', sans-serif;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+      }
+
+      #pantalla-carga.oculta {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .carga-tarjeta {
+        background: rgba(24, 28, 41, 0.85);
+        border: 1px solid rgba(229, 193, 88, 0.35);
+        border-radius: 16px;
+        padding: 2.5rem 3rem;
+        max-width: 480px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+      }
+
+      .carga-icono {
+        font-size: 2.8rem;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+        animation: pulso 1.8s infinite ease-in-out;
+      }
+
+      @keyframes pulso {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+      }
+
+      .carga-titulo {
+        font-family: 'Cinzel', serif;
+        color: #e5c158;
+        font-size: 1.45rem;
+        margin: 0 0 0.4rem 0;
+        letter-spacing: 0.5px;
+      }
+
+      .carga-subtitulo {
+        color: #9ba3b5;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+
+      /* Barra de progreso */
+      .barra-contenedor {
+        width: 100%;
+        height: 12px;
+        background-color: #10131c;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+      }
+
+      #barra-relleno {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #d84315 0%, #e5c158 100%);
+        border-radius: 999px;
+        transition: width 0.25s ease-out;
+      }
+
+      .carga-datos {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.82rem;
+        color: #9ba3b5;
+      }
+
+      #carga-porcentaje {
+        color: #e5c158;
+        font-weight: 600;
+      }
+    </style>
     <meta charset="UTF-8" />
     <title>Museo VR - Modo Inmersivo</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -415,9 +511,80 @@
   </head>
 
   <body>
+    <!-- Pantalla de carga personalizada con barra de progreso -->
+    <div id="pantalla-carga">
+      <div class="carga-tarjeta">
+        <div class="carga-icono">🦖</div>
+        <h2 class="carga-titulo">Museo Paleontológico</h2>
+        <p class="carga-subtitulo">Preparando sala virtual y modelos 3D...</p>
+
+        <div class="barra-contenedor">
+          <div id="barra-relleno"></div>
+        </div>
+
+        <div class="carga-datos">
+          <span id="carga-detalle">Iniciando motor WebXR...</span>
+          <span id="carga-porcentaje">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const pantalla = document.getElementById("pantalla-carga");
+        const relleno = document.getElementById("barra-relleno");
+        const textoPorcentaje = document.getElementById("carga-porcentaje");
+        const textoDetalle = document.getElementById("carga-detalle");
+        let finalizada = false;
+
+        function actualizarBarra(porcentaje, detalle) {
+          const valor = Math.min(100, Math.max(0, Math.round(porcentaje)));
+          if (relleno) relleno.style.width = valor + "%";
+          if (textoPorcentaje) textoPorcentaje.textContent = valor + "%";
+          if (detalle && textoDetalle) textoDetalle.textContent = detalle;
+        }
+
+        function ocultarPantalla() {
+          if (finalizada) return;
+          finalizada = true;
+          actualizarBarra(100, "¡Sala lista!");
+          setTimeout(() => {
+            if (pantalla) pantalla.classList.add("oculta");
+          }, 350);
+        }
+
+        // Conectar con el gestor de descargas 3D de Three.js / A-Frame
+        if (window.THREE && THREE.DefaultLoadingManager) {
+          THREE.DefaultLoadingManager.onProgress = function (url, cargados, total) {
+            if (total > 0) {
+              const pct = (cargados / total) * 100;
+              const nombreArchivo = url.split("/").pop().split("?")[0];
+              actualizarBarra(pct, "Cargando: " + nombreArchivo);
+            }
+          };
+
+          THREE.DefaultLoadingManager.onLoad = function () {
+            ocultarPantalla();
+          };
+        }
+
+        // Respaldo cuando A-Frame confirma que la escena y la sala están listas
+        window.addEventListener("DOMContentLoaded", () => {
+          const sala = document.getElementById("sala-museo");
+          if (sala) {
+            sala.addEventListener("model-loaded", () => {
+              setTimeout(ocultarPantalla, 600);
+            });
+          }
+          // Tope de seguridad máximo (12 seg) por si algún modelo tarda de más en red móvil
+          setTimeout(ocultarPantalla, 12000);
+        });
+      })();
+    </script>
     <a-scene
       background="color: #121212"
       renderer="colorManagement: true; exposure: 0.75"
+      loading-screen="enabled: false"
     >
       <a-assets>
         <a-asset-item
