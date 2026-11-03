@@ -452,6 +452,9 @@
           id="pieza7"
           src="assets/modelos/muestra_coleccion_ricardo-Avipeda-8643.glb"
         ></a-asset-item>
+
+       <!-- Música ambiental en bucle -->
+        <audio id="musica-ambiente" src="assets/audio/ambiente.mp3" preload="auto" loop crossorigin="anonymous"></audio> 
       </a-assets>
 
       <!-- Iluminación tenue y cálida pensada para visores RV -->
@@ -605,5 +608,80 @@
         cartel-museo="titulo: Muestra GHUNLPam-15375; periodo: Colección UNLPam; descripcion: Ejemplar perteneciente al repositorio paleontológico de la Universidad Nacional de La Pampa, escaneado tridimensionalmente para docencia e investigación.."
       ></a-entity>
     </a-scene>
+
+    <!-- Botón flotante para silenciar/activar música y volver al inicio -->
+    <div style="position: fixed; top: 18px; left: 18px; z-index: 9999; display: flex; gap: 10px; font-family: sans-serif;">
+      <a href="index.html" style="background: rgba(22, 25, 34, 0.85); color: #f5d061; border: 1px solid #d4af37; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; backdrop-filter: blur(6px);">
+        ⬅ Inicio
+      </a>
+      <button id="btn-musica" style="background: rgba(22, 25, 34, 0.85); color: #e8eaed; border: 1px solid rgba(255,255,255,0.2); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; backdrop-filter: blur(6px);">
+        🔊 Música: Activada
+      </button>
+    </div>
+
+    <script>
+      (function () {
+        const audio = document.getElementById("musica-ambiente");
+        const btnMusica = document.getElementById("btn-musica");
+        if (!audio) return;
+
+        // Volumen suave (25%) para que acompañe el recorrido sin aturdir en los lentes RV
+        audio.volume = 0.25;
+        let silenciadoManual = false;
+
+        function actualizarBoton() {
+          if (audio.paused) {
+            btnMusica.textContent = "🔇 Música: Silenciada";
+            btnMusica.style.borderColor = "rgba(255,255,255,0.2)";
+          } else {
+            btnMusica.textContent = "🔊 Música: Sonando";
+            btnMusica.style.borderColor = "#d4af37";
+          }
+        }
+
+        function intentarReproducir() {
+          if (silenciadoManual || !audio.paused) return;
+          audio.play().then(() => {
+            actualizarBoton();
+          }).catch(() => {
+            // El navegador esperará a la primera interacción del usuario
+          });
+        }
+
+        // Botón manual para pausar o reanudar
+        btnMusica.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (audio.paused) {
+            silenciadoManual = false;
+            audio.play().then(actualizarBoton);
+          } else {
+            silenciadoManual = true;
+            audio.pause();
+            actualizarBoton();
+          }
+        });
+
+        // 1. Activar al hacer clic, tocar la pantalla en el celular o presionar una tecla
+        ["click", "touchstart", "keydown"].forEach((evento) => {
+          window.addEventListener(evento, intentarReproducir, { passive: true });
+        });
+
+        // 2. Activar también si el usuario mueve el stick o presiona un botón del mando GameSir
+        setInterval(() => {
+          if (silenciadoManual || !audio.paused) return;
+          const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+          for (let i = 0; i < gps.length; i++) {
+            const gp = gps[i];
+            if (!gp || !gp.connected) continue;
+            const movioStick = gp.axes && gp.axes.some((eje) => Math.abs(eje) > 0.25);
+            const tocoBoton = gp.buttons && gp.buttons.some((b) => b.pressed);
+            if (movioStick || tocoBoton) {
+              intentarReproducir();
+              break;
+            }
+          }
+        }, 500);
+      })();
+    </script>
   </body>
 </html>
