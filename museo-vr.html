@@ -452,9 +452,6 @@
           id="pieza7"
           src="assets/modelos/muestra_coleccion_ricardo-Avipeda-8643.glb"
         ></a-asset-item>
-
-       <!-- Música ambiental en bucle -->
-        <audio id="musica-ambiente" src="assets/audio/ambiente.mp3" preload="auto" loop crossorigin="anonymous"></audio> 
       </a-assets>
 
       <!-- Iluminación tenue y cálida pensada para visores RV -->
@@ -609,12 +606,213 @@
       ></a-entity>
     </a-scene>
 
-    <!-- Botón flotante para silenciar/activar música y volver al inicio -->
-    <div style="position: fixed; top: 18px; left: 18px; z-index: 9999; display: flex; gap: 10px; font-family: sans-serif;">
-      <a href="index.html" style="background: rgba(22, 25, 34, 0.85); color: #f5d061; border: 1px solid #d4af37; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; backdrop-filter: blur(6px);">
+    <!-- Audio nativo fuera de a-scene para compatibilidad total con navegadores móviles -->
+    <audio
+      id="musica-ambiente"
+      src="assets/audio/ambiente.mp3"
+      preload="auto"
+      loop
+      playsinline
+    ></audio>
+
+    <!-- Controles flotantes superiores -->
+    <div
+      style="
+        position: fixed;
+        top: 18px;
+        left: 18px;
+        z-index: 99999;
+        display: flex;
+        gap: 10px;
+        font-family: sans-serif;
+      "
+    >
+      <a
+        href="index.html"
+        style="
+          background: rgba(22, 25, 34, 0.9);
+          color: #f5d061;
+          border: 1px solid #d4af37;
+          padding: 10px 16px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-weight: bold;
+          font-size: 14px;
+          backdrop-filter: blur(6px);
+        "
+      >
         ⬅ Inicio
       </a>
-      <button id="btn-musica" style="background: rgba(22, 25, 34, 0.85); color: #e8eaed; border: 1px solid rgba(255,255,255,0.2); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; backdrop-filter: blur(6px);">
+      <button
+        id="btn-musica"
+        type="button"
+        style="
+          background: rgba(22, 25, 34, 0.9);
+          color: #e8eaed;
+          border: 1px solid #d4af37;
+          padding: 10px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 14px;
+          backdrop-filter: blur(6px);
+          touch-action: manipulation;
+        "
+      >
+        🔊 Tocar para activar música
+      </button>
+    </div>
+
+    <script>
+      (function () {
+        const audio = document.getElementById("musica-ambiente");
+        const btnMusica = document.getElementById("btn-musica");
+        const escena = document.querySelector("a-scene");
+        if (!audio || !btnMusica) return;
+
+        audio.volume = 0.25;
+        let silenciadoManual = false;
+        let desbloqueado = false;
+
+        function actualizarBoton() {
+          if (audio.paused) {
+            btnMusica.textContent = silenciadoManual
+              ? "🔇 Música: Silenciada"
+              : "🔊 Tocar para activar música";
+            btnMusica.style.borderColor = "rgba(255,255,255,0.25)";
+          } else {
+            btnMusica.textContent = "🔊 Música: Sonando";
+            btnMusica.style.borderColor = "#d4af37";
+          }
+        }
+
+        function intentarReproducir() {
+          if (silenciadoManual) return;
+
+          // Despertar el contexto de audio de A-Frame/Three.js en móviles si existe
+          if (escena && escena.audioListener && escena.audioListener.context) {
+            if (escena.audioListener.context.state === "suspended") {
+              escena.audioListener.context.resume();
+            }
+          }
+
+          if (audio.paused) {
+            const promesa = audio.play();
+            if (promesa !== undefined) {
+              promesa
+                .then(() => {
+                  desbloqueado = true;
+                  actualizarBoton();
+                  eliminarListenersDesbloqueo();
+                })
+                .catch(() => {
+                  // Sigue esperando un toque directo (touchend / click) en pantalla
+                });
+            }
+          }
+        }
+
+        // Control manual desde el botón superior
+        function alternarMusica(e) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (audio.paused) {
+            silenciadoManual = false;
+            audio.play().then(() => {
+              desbloqueado = true;
+              actualizarBoton();
+            });
+          } else {
+            silenciadoManual = true;
+            audio.pause();
+            actualizarBoton();
+          }
+        }
+
+        btnMusica.addEventListener("click", alternarMusica);
+        btnMusica.addEventListener("touchend", alternarMusica, {
+          passive: false,
+        });
+
+        // Eventos válidos en móviles (touchend y pointerup son los que habilitan el audio en Android/iOS)
+        const eventosValidos = ["touchend", "pointerup", "click", "keydown"];
+
+        function eliminarListenersDesbloqueo() {
+          eventosValidos.forEach((ev) => {
+            window.removeEventListener(ev, intentarReproducir, true);
+            document.removeEventListener(ev, intentarReproducir, true);
+          });
+        }
+
+        eventosValidos.forEach((ev) => {
+          window.addEventListener(ev, intentarReproducir, {
+            capture: true,
+            passive: true,
+          });
+          document.addEventListener(ev, intentarReproducir, {
+            capture: true,
+            passive: true,
+          });
+        });
+
+        // Asegurar que al tocar el botón "VR" para poner el celular en los lentes siga sonando
+        if (escena) {
+          escena.addEventListener("enter-vr", () => {
+            if (!silenciadoManual) {
+              setTimeout(() => {
+                audio
+                  .play()
+                  .then(actualizarBoton)
+                  .catch(() => {});
+              }, 150);
+            }
+          });
+        }
+      })();
+    </script>
+
+    <!-- Botón flotante para silenciar/activar música y volver al inicio -->
+    <div
+      style="
+        position: fixed;
+        top: 18px;
+        left: 18px;
+        z-index: 9999;
+        display: flex;
+        gap: 10px;
+        font-family: sans-serif;
+      "
+    >
+      <a
+        href="index.html"
+        style="
+          background: rgba(22, 25, 34, 0.85);
+          color: #f5d061;
+          border: 1px solid #d4af37;
+          padding: 10px 16px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-weight: bold;
+          font-size: 14px;
+          backdrop-filter: blur(6px);
+        "
+      >
+        ⬅ Inicio
+      </a>
+      <button
+        id="btn-musica"
+        style="
+          background: rgba(22, 25, 34, 0.85);
+          color: #e8eaed;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 10px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 14px;
+          backdrop-filter: blur(6px);
+        "
+      >
         🔊 Música: Activada
       </button>
     </div>
@@ -641,11 +839,14 @@
 
         function intentarReproducir() {
           if (silenciadoManual || !audio.paused) return;
-          audio.play().then(() => {
-            actualizarBoton();
-          }).catch(() => {
-            // El navegador esperará a la primera interacción del usuario
-          });
+          audio
+            .play()
+            .then(() => {
+              actualizarBoton();
+            })
+            .catch(() => {
+              // El navegador esperará a la primera interacción del usuario
+            });
         }
 
         // Botón manual para pausar o reanudar
@@ -663,7 +864,9 @@
 
         // 1. Activar al hacer clic, tocar la pantalla en el celular o presionar una tecla
         ["click", "touchstart", "keydown"].forEach((evento) => {
-          window.addEventListener(evento, intentarReproducir, { passive: true });
+          window.addEventListener(evento, intentarReproducir, {
+            passive: true,
+          });
         });
 
         // 2. Activar también si el usuario mueve el stick o presiona un botón del mando GameSir
@@ -673,7 +876,8 @@
           for (let i = 0; i < gps.length; i++) {
             const gp = gps[i];
             if (!gp || !gp.connected) continue;
-            const movioStick = gp.axes && gp.axes.some((eje) => Math.abs(eje) > 0.25);
+            const movioStick =
+              gp.axes && gp.axes.some((eje) => Math.abs(eje) > 0.25);
             const tocoBoton = gp.buttons && gp.buttons.some((b) => b.pressed);
             if (movioStick || tocoBoton) {
               intentarReproducir();
