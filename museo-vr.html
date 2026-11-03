@@ -112,10 +112,11 @@
         },
       });
 
-      // 2. Auto-centrado sobre el pedestal real más cercano de la sala
+      // 2. Auto-centrado sobre el pedestal real con soporte para elevación
       AFRAME.registerComponent("ajustar-al-pedestal", {
         schema: {
           tamanoMax: { type: "number", default: 1.15 },
+          elevacion: { type: "number", default: 0.0 }, // NUEVO: Altura extra en metros sobre el stand
         },
         init: function () {
           this.el.addEventListener("model-loaded", () => {
@@ -167,7 +168,7 @@
             mesh.scale.setScalar(escala);
           }
 
-          // 3. Medir la malla ya escalada en coordenadas del mundo y alinear su base al pedestal
+          // 3. Medir la malla ya escalada y alinear su base al pedestal sumando la elevación
           this.el.object3D.updateMatrixWorld(true);
           const box2 = new THREE.Box3().setFromObject(mesh);
           const center2 = box2.getCenter(new THREE.Vector3());
@@ -175,18 +176,16 @@
           const destinoMundo = new THREE.Vector3();
           this.el.object3D.getWorldPosition(destinoMundo);
 
-          // Desplazamiento exacto en el mundo para que el centro X/Z y la base mínima Y coincidan con el pedestal
           const deltaMundo = new THREE.Vector3(
             destinoMundo.x - center2.x,
-            destinoMundo.y - box2.min.y,
-            destinoMundo.z - center2.z
+            destinoMundo.y - box2.min.y + this.data.elevacion, // Se aplica la elevación aquí
+            destinoMundo.z - center2.z,
           );
 
           const posActualMallaMundo = new THREE.Vector3();
           mesh.getWorldPosition(posActualMallaMundo);
           const nuevaPosMallaMundo = posActualMallaMundo.add(deltaMundo);
 
-          // Convertir a espacio local de la entidad (respeta cualquier rotation="0 90 0")
           this.el.object3D.worldToLocal(nuevaPosMallaMundo);
           mesh.position.copy(nuevaPosMallaMundo);
           this.el.object3D.updateMatrixWorld(true);
@@ -247,18 +246,15 @@
           ctx.fillText(linea, 65, y);
 
           const textura = new THREE.CanvasTexture(canvas);
-          // Tamaño grande (0.95m x 0.60m) como en la versión anterior
           const geometria = new THREE.PlaneGeometry(0.95, 0.6);
           const material = new THREE.MeshBasicMaterial({
             map: textura,
             side: THREE.DoubleSide,
           });
           const malla = new THREE.Mesh(geometria, material);
-          // Pequeño adelanto en Z local para quedar por delante de la placa negra del atril
           malla.position.set(0, 0, 0.03);
           this.el.setObject3D("mesh", malla);
 
-          // Imantar automáticamente al atril negro más cercano cuando cargue la sala
           window.DATOS_SALA_MUSEO.alEstarListo(() => {
             const pos = this.el.object3D.position;
             let mejorAtril = null;
@@ -305,16 +301,14 @@
           const camEl = this.el.querySelector("[camera]");
           if (!camEl) return;
 
-          // Bloquear posición local X/Z de la cámara en 0 para evitar que orbite o "vuele"
           camEl.object3D.position.x = 0;
           camEl.object3D.position.z = 0;
 
-          let ejeX = 0;     // Caminar izquierda / derecha
-          let ejeY = 0;     // Caminar adelante / atrás
-          let ejeGiroX = 0; // Girar cabeza izquierda / derecha
-          let ejeGiroY = 0; // Inclinar cabeza arriba / abajo
+          let ejeX = 0;
+          let ejeY = 0;
+          let ejeGiroX = 0;
+          let ejeGiroY = 0;
 
-          // A. Teclado (WASD/Flechas para caminar | Q/E y R/F para mover la cabeza)
           if (this.teclas["KeyW"] || this.teclas["ArrowUp"]) ejeY -= 1;
           if (this.teclas["KeyS"] || this.teclas["ArrowDown"]) ejeY += 1;
           if (this.teclas["KeyA"] || this.teclas["ArrowLeft"]) ejeX -= 1;
@@ -324,7 +318,6 @@
           if (this.teclas["KeyR"]) ejeGiroY -= 1;
           if (this.teclas["KeyF"]) ejeGiroY += 1;
 
-          // B. Mando Bluetooth GameSir
           const DEADZONE = 0.22;
           const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
 
@@ -333,21 +326,15 @@
             if (!gp || !gp.connected || !gp.axes || gp.axes.length < 2)
               continue;
 
-            // Stick Izquierdo: Caminar (axes 0 y 1)
             if (Math.abs(gp.axes[0]) > DEADZONE) ejeX = gp.axes[0];
             if (Math.abs(gp.axes[1]) > DEADZONE) ejeY = gp.axes[1];
-
-            // Stick Derecho Horizontal: Girar cabeza izquierda/derecha (axis 2)
             if (gp.axes.length >= 3 && Math.abs(gp.axes[2]) > DEADZONE) {
               ejeGiroX = gp.axes[2];
             }
-
-            // Stick Derecho Vertical: Mirar arriba/abajo (axis 3)
             if (gp.axes.length >= 4 && Math.abs(gp.axes[3]) > DEADZONE) {
               ejeGiroY = gp.axes[3];
             }
 
-            // Cruceta (D-Pad) para caminar
             if (gp.buttons && gp.buttons.length >= 16) {
               if (gp.buttons[12] && gp.buttons[12].pressed) ejeY = -1;
               if (gp.buttons[13] && gp.buttons[13].pressed) ejeY = 1;
@@ -357,14 +344,17 @@
             break;
           }
 
-          // 1. ROTACIÓN DE LA CABEZA EN EL LUGAR (sin desplazar al usuario)
           const radPorSeg = THREE.MathUtils.degToRad(this.data.velocidadGiro);
           const maxPitch = THREE.MathUtils.degToRad(65);
           const enModoVR = this.el.sceneEl && this.el.sceneEl.is("vr-mode");
           const lookControls = camEl.components["look-controls"];
 
-          if (!enModoVR && lookControls && lookControls.yawObject && lookControls.pitchObject) {
-            // En modo normal (PC/Celular 2D): rotamos directamente el pivote interno de look-controls
+          if (
+            !enModoVR &&
+            lookControls &&
+            lookControls.yawObject &&
+            lookControls.pitchObject
+          ) {
             if (Math.abs(ejeGiroX) > 0.05) {
               lookControls.yawObject.rotation.y -= ejeGiroX * radPorSeg * dt;
             }
@@ -372,11 +362,10 @@
               lookControls.pitchObject.rotation.x = THREE.MathUtils.clamp(
                 lookControls.pitchObject.rotation.x - ejeGiroY * radPorSeg * dt,
                 -maxPitch,
-                maxPitch
+                maxPitch,
               );
             }
           } else if (enModoVR) {
-            // En modo VR: rotamos el Rig sobre el eje vertical de la cabeza
             if (Math.abs(ejeGiroX) > 0.05) {
               this.el.object3D.rotation.y -= ejeGiroX * radPorSeg * dt;
             }
@@ -384,13 +373,12 @@
               this.pitchVR = THREE.MathUtils.clamp(
                 this.pitchVR - ejeGiroY * radPorSeg * dt,
                 -maxPitch,
-                maxPitch
+                maxPitch,
               );
               camEl.object3D.rotation.x = this.pitchVR;
             }
           }
 
-          // 2. DESPLAZAMIENTO (solo cuando se acciona el stick izquierdo o WASD)
           if (Math.abs(ejeX) < 0.05 && Math.abs(ejeY) < 0.05) return;
 
           const camaraActiva = this.el.sceneEl.camera;
@@ -436,18 +424,30 @@
           id="sala-museo-glb"
           src="assets/modelos/sala_museo.glb"
         ></a-asset-item>
-        <a-asset-item id="pieza1" src="assets/modelos/Duck.glb"></a-asset-item>
+        <a-asset-item id="pieza1" src="assets/modelos/fosil__tengkorak_macaca.glb"></a-asset-item>
         <a-asset-item
           id="pieza2"
-          src="assets/modelos/CesiumMan.glb"
+          src="assets/modelos/montsecosuchus_depereti.glb"
         ></a-asset-item>
         <a-asset-item
           id="pieza3"
-          src="assets/modelos/sarcosuchus_imperator.glb"
+          src="assets/modelos/muestra_coleccion_paleontologica-GHUNLPam-15375.glb"
         ></a-asset-item>
         <a-asset-item
           id="pieza4"
-          src="assets/modelos/fosil__tengkorak_macaca.glb"
+          src="assets/modelos/muestra_coleccion_paleontologica-GHUNLPam-28000.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="pieza5"
+          src="assets/modelos/muestra_coleccion_ricardo-GHUNLPam29818.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="pieza6"
+          src="assets/modelos/sarcosuchus_imperator.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="pieza7"
+          src="assets/modelos/muestra_coleccion_ricardo-Avipeda-8643.glb"
         ></a-asset-item>
       </a-assets>
 
@@ -475,7 +475,7 @@
         distance="15"
       ></a-light>
 
-      <!-- Sistema de Cámara: wasd-controls desactivado en a-camera para no desfasar el pivote -->
+      <!-- Sistema de Cámara -->
       <a-entity
         id="cameraRig"
         position="0 0 7.0"
@@ -501,10 +501,10 @@
       <!-- TARIMA CENTRAL: Esqueleto Principal + Cartel Grande       -->
       <!-- ========================================================= -->
       <a-entity
-        gltf-model="#pieza3"
+        gltf-model="#pieza6"
         position="0 0.40 -1.0"
         rotation="0 -90 0"
-        ajustar-al-pedestal="tamanoMax: 4.8"
+        ajustar-al-pedestal="tamanoMax: 5.8; elevacion: 0.0"
       ></a-entity>
       <a-entity
         position="0 1.05 2.47"
@@ -513,13 +513,43 @@
       ></a-entity>
 
       <!-- ========================================================= -->
-      <!-- STAND CENTRO OESTE (Izquierda): Modelo + Cartel Grande    -->
+      <!-- STAND ENTRADA OESTE                                       -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza4"
+        position="-5.44 1.00 5.7"
+        rotation="0 90 0"
+        ajustar-al-pedestal="tamanoMax: 1.1; elevacion: 0.1"
+      ></a-entity>
+      <a-entity
+        position="-4.47 0.89 5.7"
+        rotation="-30 90 0"
+        cartel-museo="titulo: Cráneo de Triceratops; periodo: Cretácico Superior (68 Ma); descripcion: Herbívoro ceratópsido caracterizado por su gran gola ósea y tres cuernos faciales defensivos."
+      ></a-entity>
+
+      <!-- ========================================================= -->
+      <!-- STAND ENTRADA ESTE                                        -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza5"
+        position="5.44 1.00 5.7"
+        rotation="0 90 0"
+        ajustar-al-pedestal="tamanoMax: 1.1; elevacion: 0.2"
+      ></a-entity>
+      <a-entity
+        position="4.47 0.89 5.7"
+        rotation="-30 -90 0"
+        cartel-museo="titulo: Cráneo de Triceratops; periodo: Cretácico Superior (68 Ma); descripcion: Herbívoro ceratópsido caracterizado por su gran gola ósea y tres cuernos faciales defensivos."
+      ></a-entity>
+
+      <!-- ========================================================= -->
+      <!-- STAND CENTRO OESTE (Izquierda)                            -->
       <!-- ========================================================= -->
       <a-entity
         gltf-model="#pieza1"
         position="-5.44 1.00 0"
-        rotation="0 90 0"
-        ajustar-al-pedestal="tamanoMax: 1.1"
+        rotation="0 180 0"
+        ajustar-al-pedestal="tamanoMax: 1.1; elevacion: 0.0"
       ></a-entity>
       <a-entity
         position="-4.47 1.05 0"
@@ -528,13 +558,13 @@
       ></a-entity>
 
       <!-- ========================================================= -->
-      <!-- STAND CENTRO ESTE (Derecha): Modelo + Cartel Grande       -->
+      <!-- STAND CENTRO ESTE (Derecha)                               -->
       <!-- ========================================================= -->
       <a-entity
         gltf-model="#pieza2"
         position="5.44 1.00 0"
         rotation="0 -90 0"
-        ajustar-al-pedestal="tamanoMax: 1.3"
+        ajustar-al-pedestal="tamanoMax: 1.5; elevacion: 0.2"
       ></a-entity>
       <a-entity
         position="4.47 1.05 0"
@@ -543,18 +573,33 @@
       ></a-entity>
 
       <!-- ========================================================= -->
-      <!-- STAND FONDO OESTE: Cuarto Modelo + Cartel Grande          -->
+      <!-- STAND FONDO OESTE                                         -->
       <!-- ========================================================= -->
       <a-entity
-        gltf-model="#pieza4"
+        gltf-model="#pieza7"
         position="-5.44 1.00 -6.5"
-        rotation="0 90 0"
-        ajustar-al-pedestal="tamanoMax: 1.15"
+        rotation="0 0 0"
+        ajustar-al-pedestal="tamanoMax: 1.15; elevacion: 0.2"
       ></a-entity>
       <a-entity
         position="-4.47 1.05 -6.5"
         rotation="-30 90 0"
         cartel-museo="titulo: Cráneo Paleontológico; periodo: Mesozoico; descripcion: Ejemplar fósil centrado y escalado automáticamente sobre el pedestal de exhibición."
+      ></a-entity>
+
+      <!-- ========================================================= -->
+      <!-- STAND FONDO ESTE (Derecha)                                -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza3"
+        position="5.44 1.00 -6.5"
+        rotation="0 0 0"
+        ajustar-al-pedestal="tamanoMax: 1.5; elevacion: 0.1wd"
+      ></a-entity>
+      <a-entity
+        position="4.47 0.89 -5.7"
+        rotation="-30 -90 0"
+        cartel-museo="titulo: Giganotosaurus Carolinii; periodo: Cretácico Superior (98 Ma); descripcion: Uno de los mayores terópodos carnívoros conocidos, hallado en la Patagonia argentina."
       ></a-entity>
     </a-scene>
   </body>
