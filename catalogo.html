@@ -4,58 +4,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo de Fósiles - Museo 3D</title>
+    <title>Catálogo de Fósiles | Museo Virtual 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <!-- El script de model-viewer solo se carga donde se necesita -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
 </head>
 
 <body>
-    <header>
-        <h1>Catálogo de Piezas</h1>
-        <a href="index.html" class="btn-secundario">Volver al Inicio</a>
+
+    <!-- Barra de navegación superior -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icono">🦖</span>
+                <div>
+                    <span class="logo-titulo">MUSEO PALEONTOLÓGICO</span>
+                    <span class="logo-sub">PROYECTO UNIVERSITARIO 3D &amp; WEBXR</span>
+                </div>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Inicio</a>
+                <a href="catalogo.html" class="activo">Catálogo 3D</a>
+                <a href="museo-vr.html" class="btn-nav-vr">Sala Inmersiva VR</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Encabezado del Catálogo -->
+    <header class="catalogo-header">
+        <span class="insignia-institucional">ARCHIVO TRIDIMENSIONAL</span>
+        <h1>Catálogo de Piezas Paleontológicas</h1>
+        <p>Utiliza el clic izquierdo para rotar cada fósil en 360°, la rueda del ratón para hacer zoom y el clic derecho para desplazar el encuadre.</p>
     </header>
 
-    <!-- Usamos un contenedor grid para alinear las tarjetas -->
+    <!-- Grilla de Tarjetas 3D -->
     <main class="galeria-grid">
 
-        <!-- Tarjeta del Modelo 1 (El Pato de prueba) -->
-        <section class="pieza-exhibicion">
-            <h2>Modelo de Prueba 1</h2>
-            <model-viewer src="assets/modelos/Duck.glb" auto-rotate camera-controls></model-viewer>
+        <!-- Pieza 1: Sarcosuchus Imperator -->
+        <section class="pieza-exhibicion destacada">
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Cretácico Inferior (112 Ma)</span>
+                <span class="etiqueta-codigo">Exhibición Central</span>
+            </div>
+            <h2>Sarcosuchus Imperator</h2>
+            <model-viewer src="assets/modelos/sarcosuchus_imperator.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Crocodilomorfo gigante que alcanzó hasta 12 metros de longitud. Habitó sistemas fluviales tropicales y poseía un hocico alargado adaptado para capturar grandes presas.</p>
         </section>
 
-        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <!-- Pieza 2: Montsecosuchus Depereti -->
         <section class="pieza-exhibicion">
-            <h2>Modelo de Prueba 2</h2>
-            <model-viewer src="assets/modelos/CesiumMan.glb" auto-rotate camera-controls></model-viewer>
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Cretácico Inferior</span>
+                <span class="etiqueta-codigo">Crocodyliformes</span>
+            </div>
+            <h2>Montsecosuchus Depereti</h2>
+            <model-viewer src="assets/modelos/montsecosuchus_depereti.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Pequeño reptil atoposáurido prehistórico de hábito semiacuático, caracterizado por su cráneo corto y excelente preservación articular en calizas litográficas.</p>
         </section>
 
-
-        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <!-- Pieza 3: Cráneo Fósil de Macaca -->
         <section class="pieza-exhibicion">
-            <h2>Modelo de Prueba 2</h2>
-            <model-viewer src="assets/modelos/fosil__tengkorak_macaca.glb" auto-rotate camera-controls></model-viewer>
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Cenozoico / Cuaternario</span>
+                <span class="etiqueta-codigo">Osteología Craneal</span>
+            </div>
+            <h2>Cráneo Fósil de Primate (Macaca)</h2>
+            <model-viewer src="assets/modelos/fosil__tengkorak_macaca.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Espécimen craneal fosilizado que permite observar en detalle la morfología de las órbitas oculares, el arco cigomático y el desgaste de la serie dental superior.</p>
         </section>
 
-
-        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <!-- Pieza 4: Muestra GHUNLPam-15375 -->
         <section class="pieza-exhibicion">
-            <h2>Modelo de Prueba 2</h2>
-            <model-viewer src="assets/modelos/montsecosuchus_depereti.glb" auto-rotate camera-controls></model-viewer>
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Colección UNLPam</span>
+                <span class="etiqueta-codigo">GHUNLPam-15375</span>
+            </div>
+            <h2>Muestra Paleontológica GHUNLPam-15375</h2>
+            <model-viewer src="assets/modelos/muestra_coleccion_paleontologica-GHUNLPam-15375.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Ejemplar perteneciente al repositorio paleontológico de la Universidad Nacional de La Pampa, escaneado tridimensionalmente para docencia e investigación.</p>
         </section>
 
-
-        <!-- Tarjeta del Modelo 2 (El Humanoide de prueba) -->
+        <!-- Pieza 5: Muestra GHUNLPam-28000 -->
         <section class="pieza-exhibicion">
-            <h2>Modelo de Prueba 2</h2>
-            <model-viewer src="assets/modelos/sarcosuchus_imperator.glb" auto-rotate camera-controls></model-viewer>
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Colección UNLPam</span>
+                <span class="etiqueta-codigo">GHUNLPam-28000</span>
+            </div>
+            <h2>Muestra Paleontológica GHUNLPam-28000</h2>
+            <model-viewer src="assets/modelos/muestra_coleccion_paleontologica-GHUNLPam-28000.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Pieza fósil catalogada en la colección institucional GHUNLPam. El modelo digital permite analizar su relieve superficial sin manipular el original.</p>
         </section>
 
+        <!-- Pieza 6: Muestra Colección Ricardo GHUNLPam-29818 -->
+        <section class="pieza-exhibicion">
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Colección Ricardo</span>
+                <span class="etiqueta-codigo">GHUNLPam-29818</span>
+            </div>
+            <h2>Espécimen Fósil GHUNLPam-29818</h2>
+            <model-viewer src="assets/modelos/muestra_coleccion_ricardo-GHUNLPam29818.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Muestra integrante de la Colección Ricardo resguardada en la UNLPam, digitalizada para su preservación e inspección interactiva.</p>
+        </section>
 
-        <!-- Puedes copiar y pegar el bloque <section> para añadir más modelos -->
+        <!-- Pieza 7: Icnofósil Avipeda-8643 -->
+        <section class="pieza-exhibicion">
+            <div class="pieza-cabecera">
+                <span class="etiqueta-periodo">Icnología</span>
+                <span class="etiqueta-codigo">Avipeda-8643</span>
+            </div>
+            <h2>Icnofósil Avipeda (Muestra 8643)</h2>
+            <model-viewer src="assets/modelos/muestra_coleccion_ricardo-Avipeda-8643.glb" auto-rotate camera-controls shadow-intensity="1" exposure="0.9"></model-viewer>
+            <p>Huella fósil de ave prehistórica (*Avipeda*) conservada en sedimento consolidado, clave para el estudio del desplazamiento y paleoambiente de la fauna local.</p>
+        </section>
 
     </main>
+
+    <footer class="footer">
+        <p>Proyecto Educativo de Paleontología Digital • <a href="museo-vr.html">Ingresar a la Sala VR</a></p>
+    </footer>
+
 </body>
 
 </html>

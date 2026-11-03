@@ -4,21 +4,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Museo Virtual de Dinosaurios</title>
+    <title>Museo Virtual de Paleontología | Exploración 3D y VR</title>
+    <!-- Fuentes de Google: Cinzel (Títulos de Museo) e Inter (Cuerpo de texto) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <!-- Model-Viewer para la pieza destacada de la portada -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
 </head>
 
 <body class="landing-body">
-    <div class="hero-section">
-        <h1>Explora el Pasado en 3D</h1>
-        <p>Bienvenido al proyecto interactivo universitario de paleontología. Descubre piezas fósiles escaneadas desde
-            tu pantalla o sumérgete en nuestra sala inmersiva utilizando lentes de Realidad Virtual.</p>
 
-        <div class="botones-hero">
-            <a href="catalogo.html" class="btn-secundario">Ver Catálogo de Modelos</a>
-            <a href="museo-vr.html" class="btn-vr">Entrar al Museo VR</a>
+    <!-- Barra de navegación superior -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icono">🦖</span>
+                <div>
+                    <span class="logo-titulo">MUSEO PALEONTOLÓGICO</span>
+                    <span class="logo-sub">PROYECTO UNIVERSITARIO 3D &amp; WEBXR</span>
+                </div>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="activo">Inicio</a>
+                <a href="catalogo.html">Catálogo 3D</a>
+                <a href="museo-vr.html" class="btn-nav-vr">Sala Inmersiva VR</a>
+            </div>
         </div>
-    </div>
+    </nav>
+
+    <!-- Sección Principal (Hero) -->
+    <main class="hero-wrapper">
+        <section class="hero-section">
+            <div class="hero-contenido">
+                <span class="insignia-institucional">COLECCIÓN DIGITAL INTERACTIVA</span>
+                <h1>Explora el Pasado Prehistórico en 3D</h1>
+                <p>
+                    Bienvenido al repositorio interactivo universitario de paleontología. Inspecciona réplicas fósiles
+                    escaneadas en alta precisión desde tu navegador o recórrelas a escala real dentro de nuestra sala
+                    virtual utilizando lentes de Realidad Virtual y mando Bluetooth.
+                </p>
+
+                <div class="botones-hero">
+                    <a href="museo-vr.html" class="btn-vr">
+                        <span>🥽</span> Entrar al Museo VR
+                    </a>
+                    <a href="catalogo.html" class="btn-secundario">
+                        <span>🔍</span> Explorar Catálogo (7 Piezas)
+                    </a>
+                </div>
+
+                <div class="indicadores-hero">
+                    <div class="indicador">
+                        <strong>7</strong>
+                        <span>Piezas Fósiles</span>
+                    </div>
+                    <div class="indicador">
+                        <strong>360°</strong>
+                        <span>Inspección Libre</span>
+                    </div>
+                    <div class="indicador">
+                        <strong>WebXR</strong>
+                        <span>Compatible con Cascos RV</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visor 3D en vivo en la portada -->
+            <div class="hero-visor-card">
+                <div class="visor-badge">Pieza Destacada • Cretácico Inferior</div>
+                <model-viewer 
+                    src="assets/modelos/sarcosuchus_imperator.glb" 
+                    alt="Esqueleto 3D de Sarcosuchus Imperator"
+                    auto-rotate 
+                    rotation-per-second="18deg"
+                    camera-controls 
+                    shadow-intensity="1"
+                    exposure="0.9"
+                    class="visor-portada">
+                </model-viewer>
+                <div class="visor-pie">
+                    <strong>Sarcosuchus Imperator</strong>
+                    <span>Arrastra con el ratón o el dedo para rotar el espécimen</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tarjetas de características del proyecto -->
+        <section class="caracteristicas-grid">
+            <article class="feature-card">
+                <span class="feature-icono">🏛️</span>
+                <h3>Sala Virtual a Escala Real</h3>
+                <p>Recorre los pasillos y pedestales del salón principal en primera persona utilizando el teclado o tu mando Bluetooth GameSir.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icono">🦴</span>
+                <h3>Patrimonio Universitario</h3>
+                <p>Incluye ejemplares digitalizados de la colección paleontológica (GHUNLPam) e icnofósiles preservados en detalle.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icono">📱</span>
+                <h3>Accesibilidad Multiplataforma</h3>
+                <p>Sin necesidad de instalar aplicaciones: funciona directamente desde el navegador en computadoras, celulares y visores RV.</p>
+            </article>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Proyecto Educativo de Paleontología Digital • Desarrollado con A-Frame, Three.js y Google Model-Viewer</p>
+    </footer>
+
 </body>
 
 </html>

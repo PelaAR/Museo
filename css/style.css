@@ -1,149 +1,447 @@
-¿
+/* Variables de diseño del Museo Paleontológico */
+:root {
+    --bg-principal: #0b0d13;
+    --bg-secundario: #141824;
+    --bg-tarjeta: #181c29;
+    --bg-visor: #10131c;
+    --color-dorado: #e5c158;
+    --color-dorado-suave: rgba(229, 193, 88, 0.14);
+    --color-vr: #d84315;
+    --color-vr-hover: #f4511e;
+    --texto-principal: #f1f3f5;
+    --texto-secundario: #9ba3b5;
+    --borde-sutil: rgba(255, 255, 255, 0.08);
+    --borde-dorado: rgba(229, 193, 88, 0.35);
+}
 
-/* Reset básico de márgenes */
+/* Reset general */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Fondo general del sitio */
 body {
-    background-color: #121212;
-    color: #f5f5f5;
+    background-color: var(--bg-principal);
+    background-image: radial-gradient(circle at 50% 0%, #1c2236 0%, var(--bg-principal) 70%);
+    color: var(--texto-principal);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    line-height: 1.6;
 }
 
-/* Encabezado */
-header {
-    text-align: center;
-    padding: 2rem;
+h1, h2, h3, .logo-titulo {
+    font-family: 'Cinzel', Georgia, serif;
+    letter-spacing: 0.5px;
+}
+
+/* --- Barra de Navegación Superior --- */
+.navbar {
     width: 100%;
-    background-color: #1e1e1e;
-    border-bottom: 2px solid #333;
+    background-color: rgba(11, 13, 19, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--borde-sutil);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: #e0e0e0;
+.nav-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-/* Botón para entrar a la Realidad Virtual */
-.btn-vr {
-    display: inline-block;
-    background-color: #d84315;
-    /* Tono terracota/naranja para llamar la atención */
-    color: white;
-    padding: 12px 24px;
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     text-decoration: none;
-    font-weight: bold;
+    color: var(--texto-principal);
+}
+
+.logo-icono {
+    font-size: 1.9rem;
+}
+
+.logo-titulo {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-dorado);
+    line-height: 1.2;
+}
+
+.logo-sub {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--texto-secundario);
+    letter-spacing: 1.2px;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.nav-links a {
+    color: var(--texto-secundario);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.nav-links a:hover,
+.nav-links a.activo {
+    color: var(--color-dorado);
+}
+
+.btn-nav-vr {
+    background-color: rgba(216, 67, 21, 0.18);
+    color: #ff8a65 !important;
+    border: 1px solid rgba(216, 67, 21, 0.45);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600 !important;
+    transition: all 0.25s ease !important;
+}
+
+.btn-nav-vr:hover {
+    background-color: var(--color-vr);
+    color: #ffffff !important;
+}
+
+/* --- Insignias y Botones --- */
+.insignia-institucional {
+    display: inline-block;
+    background-color: var(--color-dorado-suave);
+    color: var(--color-dorado);
+    border: 1px solid var(--borde-dorado);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    margin-bottom: 1.2rem;
+    text-transform: uppercase;
+}
+
+.btn-vr,
+.btn-secundario {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 26px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
     border-radius: 8px;
-    transition: background-color 0.3s, transform 0.1s;
+    transition: all 0.25s ease;
+}
+
+.btn-vr {
+    background: linear-gradient(135deg, #e64a19 0%, #bf360c 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 20px rgba(216, 67, 21, 0.35);
 }
 
 .btn-vr:hover {
-    background-color: #bf360c;
-    transform: scale(1.02);
+    background: linear-gradient(135deg, #ff5722 0%, #d84315 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(216, 67, 21, 0.5);
 }
 
-/* Contenedor central */
-main {
-    padding: 2rem;
+.btn-secundario {
+    background-color: #23293a;
+    color: var(--texto-principal);
+    border: 1px solid var(--borde-sutil);
+}
+
+.btn-secundario:hover {
+    background-color: #2e364d;
+    border-color: var(--borde-dorado);
+    transform: translateY(-2px);
+}
+
+/* --- Página Principal (Landing Page) --- */
+.hero-wrapper {
     width: 100%;
-    max-width: 900px;
-}
-
-/* Tarjeta donde se exhibe el modelo */
-.pieza-exhibicion {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-    text-align: center;
-}
-
-.pieza-exhibicion h2 {
-    margin-bottom: 15px;
-    color: #ffca28;
-    /* Tono dorado/fósil para el título de la pieza */
-}
-
-/* Diseño del visor 3D */
-model-viewer {
-    width: 100%;
-    height: 500px;
-    background-color: #2a2a2a;
-    /* Gris neutro para no opacar el modelo */
-    border-radius: 8px;
-    outline: none;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-/* Texto descriptivo */
-.pieza-exhibicion p {
-    margin-top: 20px;
-    line-height: 1.6;
-    color: #b0b0b0;
-    font-size: 1.1rem;
-}
-
-/* --- Estilos para la Landing Page --- */
-.landing-body {
+    max-width: 1280px;
+    padding: 3rem 2rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
-    /* Centra el contenido verticalmente */
+    gap: 3.5rem;
 }
 
 .hero-section {
-    text-align: center;
-    max-width: 700px;
-    padding: 3rem;
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 3rem;
+    align-items: center;
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde-sutil);
+    border-radius: 16px;
+    padding: 3.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
 }
 
-.hero-section p {
-    font-size: 1.2rem;
-    color: #b0b0b0;
+.hero-contenido h1 {
+    font-size: 2.75rem;
+    line-height: 1.2;
+    margin-bottom: 1.25rem;
+    color: #ffffff;
+}
+
+.hero-contenido p {
+    font-size: 1.1rem;
+    color: var(--texto-secundario);
     margin-bottom: 2rem;
-    line-height: 1.6;
 }
 
 .botones-hero {
     display: flex;
-    gap: 15px;
-    justify-content: center;
+    gap: 16px;
     flex-wrap: wrap;
+    margin-bottom: 2.5rem;
 }
 
-/* Botón secundario para el catálogo */
-.btn-secundario {
+.indicadores-hero {
+    display: flex;
+    gap: 2.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--borde-sutil);
+}
+
+.indicador strong {
+    display: block;
+    font-size: 1.5rem;
+    font-family: 'Cinzel', serif;
+    color: var(--color-dorado);
+}
+
+.indicador span {
+    font-size: 0.85rem;
+    color: var(--texto-secundario);
+}
+
+/* Tarjeta del visor 3D en la portada */
+.hero-visor-card {
+    background-color: var(--bg-visor);
+    border: 1px solid var(--borde-dorado);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.visor-badge {
+    align-self: flex-start;
+    background-color: rgba(229, 193, 88, 0.15);
+    color: var(--color-dorado);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.visor-portada {
+    width: 100%;
+    height: 360px;
+    background: radial-gradient(circle, #1e2538 0%, #0d1017 100%);
+    border-radius: 10px;
+}
+
+.visor-pie {
+    margin-top: 0.9rem;
+    text-align: center;
+}
+
+.visor-pie strong {
+    display: block;
+    color: var(--texto-principal);
+    font-size: 1rem;
+}
+
+.visor-pie span {
+    font-size: 0.8rem;
+    color: var(--texto-secundario);
+}
+
+/* Tarjetas inferiores de características */
+.caracteristicas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.feature-card {
+    background-color: rgba(24, 28, 41, 0.7);
+    border: 1px solid var(--borde-sutil);
+    border-radius: 12px;
+    padding: 1.75rem;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.feature-card:hover {
+    border-color: var(--borde-dorado);
+    transform: translateY(-3px);
+}
+
+.feature-icono {
+    font-size: 2rem;
     display: inline-block;
-    background-color: #424242;
-    color: white;
-    padding: 12px 24px;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 8px;
-    transition: background-color 0.3s;
+    margin-bottom: 0.75rem;
 }
 
-.btn-secundario:hover {
-    background-color: #616161;
+.feature-card h3 {
+    color: var(--color-dorado);
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
 }
 
-/* --- Estilos para la Grilla del Catálogo --- */
+.feature-card p {
+    color: var(--texto-secundario);
+    font-size: 0.95rem;
+}
+
+/* --- Catálogo de Piezas --- */
+.catalogo-header {
+    text-align: center;
+    max-width: 800px;
+    padding: 3.5rem 1.5rem 1.5rem;
+}
+
+.catalogo-header h1 {
+    font-size: 2.4rem;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+}
+
+.catalogo-header p {
+    color: var(--texto-secundario);
+    font-size: 1.05rem;
+}
+
 .galeria-grid {
     display: grid;
-    /* Crea columnas automáticas. Si la pantalla es ancha entran 2 o más, si es celular baja a 1 */
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
     gap: 2rem;
     width: 100%;
-    max-width: 1200px;
+    max-width: 1280px;
     padding: 2rem;
+}
+
+.pieza-exhibicion {
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde-sutil);
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.pieza-exhibicion:hover {
+    transform: translateY(-4px);
+    border-color: var(--borde-dorado);
+}
+
+.pieza-exhibicion.destacada {
+    border-color: rgba(229, 193, 88, 0.4);
+}
+
+.pieza-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.6rem;
+}
+
+.etiqueta-periodo {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8ab4f8;
+    background-color: rgba(138, 180, 248, 0.12);
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.etiqueta-codigo {
+    font-size: 0.75rem;
+    color: var(--texto-secundario);
+    font-family: monospace;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.pieza-exhibicion h2 {
+    font-size: 1.3rem;
+    color: var(--color-dorado);
+    margin-bottom: 1rem;
+}
+
+model-viewer {
+    width: 100%;
+    height: 360px;
+    background: radial-gradient(circle, #22283a 0%, #10131c 100%);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    outline: none;
+}
+
+.pieza-exhibicion p {
+    margin-top: 1.1rem;
+    color: var(--texto-secundario);
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+
+/* --- Pie de página --- */
+.footer {
+    width: 100%;
+    text-align: center;
+    padding: 2rem;
+    margin-top: auto;
+    border-top: 1px solid var(--borde-sutil);
+    color: var(--texto-secundario);
+    font-size: 0.9rem;
+}
+
+.footer a {
+    color: var(--color-dorado);
+    text-decoration: none;
+}
+
+/* Adaptación para celulares y pantallas medianas */
+@media (max-width: 920px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        padding: 2rem;
+    }
+
+    .hero-contenido h1 {
+        font-size: 2.1rem;
+    }
+
+    .galeria-grid {
+        grid-template-columns: 1fr;
+        padding: 1.25rem;
+    }
 }
