@@ -1,225 +1,561 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Museo VR - Modo Inmersivo</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
     <script>
-        // 1. Atenuar el brillo de las paredes blancas del GLB para confort en lentes RV
-        AFRAME.registerComponent('ajuste-visual-sala', {
-            init: function () {
-                this.el.addEventListener('model-loaded', () => {
-                    const mesh = this.el.getObject3D('mesh');
-                    if (!mesh) return;
-                    mesh.traverse((nodo) => {
-                        if (nodo.isMesh && nodo.material) {
-                            const c = nodo.material.color;
-                            if (c && c.r > 0.7 && c.g > 0.7 && c.b > 0.7) {
-                                nodo.material.color.setHex(0x7c828d);
-                                nodo.material.roughness = 0.92;
-                                nodo.material.metalness = 0.05;
-                            }
-                        }
-                    });
+      // Registro global de posiciones reales detectadas dentro de sala_museo.glb
+      window.DATOS_SALA_MUSEO = {
+        listo: false,
+        pedestales: [],
+        tarimaCentral: null,
+        atriles: [],
+        callbacks: [],
+        alEstarListo: function (fn) {
+          if (this.listo) fn();
+          else this.callbacks.push(fn);
+        },
+      };
+
+      // 1. Atenuar brillo de paredes + Detectar coordenadas exactas de pedestales y atriles
+      AFRAME.registerComponent("ajuste-visual-sala", {
+        init: function () {
+          this.el.addEventListener("model-loaded", () => {
+            const mesh = this.el.getObject3D("mesh");
+            if (!mesh) return;
+
+            this.el.object3D.updateMatrixWorld(true);
+            const pedestales = [];
+            const atriles = [];
+            let tarimaCentral = null;
+
+            mesh.traverse((nodo) => {
+              if (!nodo.isMesh) return;
+
+              // Atenuar paredes blancas para confort en lentes RV
+              if (nodo.material && nodo.material.color) {
+                const c = nodo.material.color;
+                if (c.r > 0.7 && c.g > 0.7 && c.b > 0.7) {
+                  nodo.material.color.setHex(0x7c828d);
+                  nodo.material.roughness = 0.92;
+                  nodo.material.metalness = 0.05;
+                }
+              }
+
+              // Medir cada pieza arquitectónica de la sala para encontrar stands y atriles
+              const box = new THREE.Box3().setFromObject(nodo);
+              if (box.isEmpty()) return;
+              const size = box.getSize(new THREE.Vector3());
+              const center = box.getCenter(new THREE.Vector3());
+
+              // A. Detectar tapa superior de los pedestales laterales (~1.24m x 1.24m, Y ~ 1.0m)
+              if (
+                Math.abs(center.x) > 2.5 &&
+                size.x > 0.95 &&
+                size.x < 1.65 &&
+                size.z > 0.95 &&
+                size.z < 1.65 &&
+                box.max.y > 0.92 &&
+                box.max.y < 1.12
+              ) {
+                pedestales.push({
+                  x: center.x,
+                  y: box.max.y,
+                  z: center.z,
                 });
+              }
+
+              // B. Detectar plataforma de la tarima central (~3.5m x 6.0m, Y ~ 0.40m)
+              if (
+                Math.abs(center.x) < 1.2 &&
+                size.x > 2.5 &&
+                size.x < 5.5 &&
+                size.z > 4.0 &&
+                size.z < 8.5 &&
+                box.max.y > 0.32 &&
+                box.max.y < 0.52
+              ) {
+                tarimaCentral = {
+                  x: center.x,
+                  y: box.max.y,
+                  z: center.z,
+                };
+              }
+
+              // C. Detectar placas inclinadas de los atriles negros (Y entre 0.75m y 1.15m)
+              if (
+                box.min.y > 0.68 &&
+                box.max.y < 1.18 &&
+                size.x > 0.2 &&
+                size.x < 0.75 &&
+                size.z > 0.2 &&
+                size.z < 0.75
+              ) {
+                atriles.push({
+                  x: center.x,
+                  y: box.max.y,
+                  z: center.z,
+                });
+              }
+            });
+
+            window.DATOS_SALA_MUSEO.pedestales = pedestales;
+            window.DATOS_SALA_MUSEO.tarimaCentral = tarimaCentral;
+            window.DATOS_SALA_MUSEO.atriles = atriles;
+            window.DATOS_SALA_MUSEO.listo = true;
+
+            window.DATOS_SALA_MUSEO.callbacks.forEach((cb) => cb());
+            window.DATOS_SALA_MUSEO.callbacks = [];
+          });
+        },
+      });
+
+      // 2. Auto-centrado sobre el pedestal real más cercano de la sala
+      AFRAME.registerComponent("ajustar-al-pedestal", {
+        schema: {
+          tamanoMax: { type: "number", default: 1.15 },
+        },
+        init: function () {
+          this.el.addEventListener("model-loaded", () => {
+            window.DATOS_SALA_MUSEO.alEstarListo(() => {
+              this.encajarModelo();
+            });
+          });
+        },
+        encajarModelo: function () {
+          const mesh = this.el.getObject3D("mesh");
+          if (!mesh) return;
+
+          const posEntidad = this.el.object3D.position;
+
+          // 1. Buscar el pedestal real más cercano en sala_museo.glb y mover la entidad allí
+          if (
+            Math.abs(posEntidad.x) < 1.8 &&
+            window.DATOS_SALA_MUSEO.tarimaCentral
+          ) {
+            const t = window.DATOS_SALA_MUSEO.tarimaCentral;
+            posEntidad.set(t.x, t.y, t.z);
+          } else if (window.DATOS_SALA_MUSEO.pedestales.length > 0) {
+            let mejor = null;
+            let minDist = Infinity;
+            window.DATOS_SALA_MUSEO.pedestales.forEach((p) => {
+              const d = Math.hypot(p.x - posEntidad.x, p.z - posEntidad.z);
+              if (d < minDist) {
+                minDist = d;
+                mejor = p;
+              }
+            });
+            if (mejor && minDist < 3.5) {
+              posEntidad.set(mejor.x, mejor.y, mejor.z);
             }
-        });
+          }
 
-        // 2. Generador de Carteles Informativos 3D (soporta tildes y ñ)
-        AFRAME.registerComponent('cartel-museo', {
-            schema: {
-                titulo: { type: 'string', default: 'Pieza en exhibición' },
-                periodo: { type: 'string', default: 'Período Cretácico' },
-                descripcion: { type: 'string', default: 'Descripción de la pieza paleontológica.' }
-            },
-            init: function () {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024;
-                canvas.height = 640;
-                const ctx = canvas.getContext('2d');
+          // 2. Resetear transformaciones internas de la malla y medir tamaño original
+          mesh.position.set(0, 0, 0);
+          mesh.scale.set(1, 1, 1);
+          this.el.object3D.updateMatrixWorld(true);
 
-                ctx.fillStyle = '#161922';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+          const box1 = new THREE.Box3().setFromObject(mesh);
+          if (box1.isEmpty()) return;
 
-                ctx.strokeStyle = '#d4af37';
-                ctx.lineWidth = 14;
-                ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
+          const size = box1.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 0) {
+            const escala = this.data.tamanoMax / maxDim;
+            mesh.scale.setScalar(escala);
+          }
 
-                ctx.fillStyle = '#f5d061';
-                ctx.font = 'bold 58px sans-serif';
-                ctx.fillText(this.data.titulo, 65, 115);
+          // 3. Medir la malla ya escalada en coordenadas del mundo y alinear su base al pedestal
+          this.el.object3D.updateMatrixWorld(true);
+          const box2 = new THREE.Box3().setFromObject(mesh);
+          const center2 = box2.getCenter(new THREE.Vector3());
 
-                ctx.fillStyle = '#8ab4f8';
-                ctx.font = 'italic 40px sans-serif';
-                ctx.fillText(this.data.periodo, 65, 175);
+          const destinoMundo = new THREE.Vector3();
+          this.el.object3D.getWorldPosition(destinoMundo);
 
-                ctx.fillStyle = '#3a4152';
-                ctx.fillRect(65, 205, canvas.width - 130, 4);
+          // Desplazamiento exacto en el mundo para que el centro X/Z y la base mínima Y coincidan con el pedestal
+          const deltaMundo = new THREE.Vector3(
+            destinoMundo.x - center2.x,
+            destinoMundo.y - box2.min.y,
+            destinoMundo.z - center2.z
+          );
 
-                ctx.fillStyle = '#e8eaed';
-                ctx.font = '38px sans-serif';
-                const palabras = this.data.descripcion.split(' ');
-                let linea = '';
-                let y = 275;
-                const maxAncho = canvas.width - 130;
+          const posActualMallaMundo = new THREE.Vector3();
+          mesh.getWorldPosition(posActualMallaMundo);
+          const nuevaPosMallaMundo = posActualMallaMundo.add(deltaMundo);
 
-                for (let i = 0; i < palabras.length; i++) {
-                    const prueba = linea + palabras[i] + ' ';
-                    if (ctx.measureText(prueba).width > maxAncho && i > 0) {
-                        ctx.fillText(linea, 65, y);
-                        linea = palabras[i] + ' ';
-                        y += 54;
-                    } else {
-                        linea = prueba;
-                    }
-                }
-                ctx.fillText(linea, 65, y);
+          // Convertir a espacio local de la entidad (respeta cualquier rotation="0 90 0")
+          this.el.object3D.worldToLocal(nuevaPosMallaMundo);
+          mesh.position.copy(nuevaPosMallaMundo);
+          this.el.object3D.updateMatrixWorld(true);
+        },
+      });
 
-                const textura = new THREE.CanvasTexture(canvas);
-                const geometria = new THREE.PlaneGeometry(0.95, 0.6);
-                const material = new THREE.MeshBasicMaterial({ map: textura, side: THREE.DoubleSide });
-                const malla = new THREE.Mesh(geometria, material);
-                this.el.setObject3D('mesh', malla);
+      // 3. Carteles Informativos Grandes (0.95m x 0.60m) con auto-ajuste al atril más cercano
+      AFRAME.registerComponent("cartel-museo", {
+        schema: {
+          titulo: { type: "string", default: "Pieza en exhibición" },
+          periodo: { type: "string", default: "Período Cretácico" },
+          descripcion: {
+            type: "string",
+            default: "Descripción de la pieza paleontológica.",
+          },
+        },
+        init: function () {
+          const canvas = document.createElement("canvas");
+          canvas.width = 1024;
+          canvas.height = 640;
+          const ctx = canvas.getContext("2d");
+
+          ctx.fillStyle = "#161922";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.strokeStyle = "#d4af37";
+          ctx.lineWidth = 14;
+          ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
+
+          ctx.fillStyle = "#f5d061";
+          ctx.font = "bold 58px sans-serif";
+          ctx.fillText(this.data.titulo, 65, 115);
+
+          ctx.fillStyle = "#8ab4f8";
+          ctx.font = "italic 40px sans-serif";
+          ctx.fillText(this.data.periodo, 65, 175);
+
+          ctx.fillStyle = "#3a4152";
+          ctx.fillRect(65, 205, canvas.width - 130, 4);
+
+          ctx.fillStyle = "#e8eaed";
+          ctx.font = "38px sans-serif";
+          const palabras = this.data.descripcion.split(" ");
+          let linea = "";
+          let y = 275;
+          const maxAncho = canvas.width - 130;
+
+          for (let i = 0; i < palabras.length; i++) {
+            const prueba = linea + palabras[i] + " ";
+            if (ctx.measureText(prueba).width > maxAncho && i > 0) {
+              ctx.fillText(linea, 65, y);
+              linea = palabras[i] + " ";
+              y += 54;
+            } else {
+              linea = prueba;
             }
-        });
+          }
+          ctx.fillText(linea, 65, y);
 
-        // 3. Locomoción + Giro con Stick Derecho (Modo Normal y Modo VR)
-        AFRAME.registerComponent('control-locomocion', {
-            schema: {
-                velocidad: { type: 'number', default: 2.6 },
-                velocidadGiro: { type: 'number', default: 85 } // Grados por segundo
-            },
-            init: function () {
-                this.teclas = {};
-                this.dirAdelante = new THREE.Vector3();
-                this.dirDerecha = new THREE.Vector3();
-                this.vectorArriba = new THREE.Vector3(0, 1, 0);
+          const textura = new THREE.CanvasTexture(canvas);
+          // Tamaño grande (0.95m x 0.60m) como en la versión anterior
+          const geometria = new THREE.PlaneGeometry(0.95, 0.6);
+          const material = new THREE.MeshBasicMaterial({
+            map: textura,
+            side: THREE.DoubleSide,
+          });
+          const malla = new THREE.Mesh(geometria, material);
+          // Pequeño adelanto en Z local para quedar por delante de la placa negra del atril
+          malla.position.set(0, 0, 0.03);
+          this.el.setObject3D("mesh", malla);
 
-                // Asegurar que no quede ninguna animación residual de teletransporte
-                this.el.removeAttribute('animation');
-
-                window.addEventListener('keydown', (e) => { this.teclas[e.code] = true; });
-                window.addEventListener('keyup', (e) => { this.teclas[e.code] = false; });
-            },
-            tick: function (tiempo, delta) {
-                if (!delta) return;
-                // Limitamos dt a máximo 50ms (0.05s) para evitar "saltos" cuando cae un fotograma en VR
-                const dt = Math.min(delta / 1000, 0.05);
-
-                let ejeX = 0;    // Caminar lateralmente
-                let ejeY = 0;    // Caminar adelante / atrás
-                let ejeGiro = 0; // Girar cámara izquierda / derecha
-
-                // A. Entrada por teclado (WASD/Flechas para moverse, Q/E para girar vista)
-                if (this.teclas['KeyW'] || this.teclas['ArrowUp']) ejeY -= 1;
-                if (this.teclas['KeyS'] || this.teclas['ArrowDown']) ejeY += 1;
-                if (this.teclas['KeyA'] || this.teclas['ArrowLeft']) ejeX -= 1;
-                if (this.teclas['KeyD'] || this.teclas['ArrowRight']) ejeX += 1;
-                if (this.teclas['KeyQ']) ejeGiro -= 1;
-                if (this.teclas['KeyE']) ejeGiro += 1;
-
-                // B. Entrada por mando físico Bluetooth (GameSir)
-                const DEADZONE = 0.22;
-                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-
-                for (let i = 0; i < gamepads.length; i++) {
-                    const gp = gamepads[i];
-                    // Ignorar gamepads vacíos o virtuales de pantalla
-                    if (!gp || !gp.connected || !gp.axes || gp.axes.length < 2) continue;
-
-                    // Stick Izquierdo: Desplazamiento (axes 0 y 1)
-                    if (Math.abs(gp.axes[0]) > DEADZONE) ejeX = gp.axes[0];
-                    if (Math.abs(gp.axes[1]) > DEADZONE) ejeY = gp.axes[1];
-
-                    // Stick Derecho: Giro horizontal de cámara (axis 2)
-                    if (gp.axes.length >= 3 && Math.abs(gp.axes[2]) > DEADZONE) {
-                        ejeGiro = gp.axes[2];
-                    }
-
-                    // Cruceta (D-Pad) opcional para caminar
-                    if (gp.buttons && gp.buttons.length >= 16) {
-                        if (gp.buttons[12] && gp.buttons[12].pressed) ejeY = -1;
-                        if (gp.buttons[13] && gp.buttons[13].pressed) ejeY = 1;
-                        if (gp.buttons[14] && gp.buttons[14].pressed) ejeX = -1;
-                        if (gp.buttons[15] && gp.buttons[15].pressed) ejeX = 1;
-                    }
-                    break; // Tomamos solo el primer mando activo para no duplicar lecturas
-                }
-
-                // 1. Aplicar giro horizontal sobre el Rig (funciona en PC y dentro de VR)
-                if (Math.abs(ejeGiro) > 0.05) {
-                    const radPorSeg = THREE.MathUtils.degToRad(this.data.velocidadGiro);
-                    this.el.object3D.rotation.y -= ejeGiro * radPorSeg * dt;
-                    this.el.object3D.updateMatrixWorld(true);
-                }
-
-                // 2. Aplicar desplazamiento si se mueve el stick izquierdo o teclado
-                if (Math.abs(ejeX) < 0.05 && Math.abs(ejeY) < 0.05) return;
-
-                const camaraActiva = this.el.sceneEl.camera;
-                if (!camaraActiva) return;
-
-                camaraActiva.getWorldDirection(this.dirAdelante);
-                this.dirAdelante.y = 0;
-                if (this.dirAdelante.lengthSq() > 0.0001) {
-                    this.dirAdelante.normalize();
-                }
-
-                this.dirDerecha.crossVectors(this.dirAdelante, this.vectorArriba).normalize();
-
-                const avance = -ejeY;
-                const lateral = ejeX;
-
-                const dx = (this.dirAdelante.x * avance + this.dirDerecha.x * lateral) * this.data.velocidad * dt;
-                const dz = (this.dirAdelante.z * avance + this.dirDerecha.z * lateral) * this.data.velocidad * dt;
-
-                const pos = this.el.object3D.position;
-                pos.x = Math.max(-5.8, Math.min(5.8, pos.x + dx));
-                pos.z = Math.max(-7.8, Math.min(7.8, pos.z + dz));
+          // Imantar automáticamente al atril negro más cercano cuando cargue la sala
+          window.DATOS_SALA_MUSEO.alEstarListo(() => {
+            const pos = this.el.object3D.position;
+            let mejorAtril = null;
+            let minDist = Infinity;
+            window.DATOS_SALA_MUSEO.atriles.forEach((a) => {
+              const d = Math.hypot(a.x - pos.x, a.z - pos.z);
+              if (d < minDist) {
+                minDist = d;
+                mejorAtril = a;
+              }
+            });
+            if (mejorAtril && minDist < 3.5) {
+              pos.set(mejorAtril.x, mejorAtril.y + 0.04, mejorAtril.z);
+              this.el.object3D.updateMatrixWorld(true);
             }
-        });
+          });
+        },
+      });
+
+      // 4. Locomoción + Rotación de Cabeza en el Lugar (Stick Derecho y Teclado)
+      AFRAME.registerComponent("control-locomocion", {
+        schema: {
+          velocidad: { type: "number", default: 2.6 },
+          velocidadGiro: { type: "number", default: 85 },
+        },
+        init: function () {
+          this.teclas = {};
+          this.dirAdelante = new THREE.Vector3();
+          this.dirDerecha = new THREE.Vector3();
+          this.vectorArriba = new THREE.Vector3(0, 1, 0);
+          this.pitchVR = 0;
+
+          window.addEventListener("keydown", (e) => {
+            this.teclas[e.code] = true;
+          });
+          window.addEventListener("keyup", (e) => {
+            this.teclas[e.code] = false;
+          });
+        },
+        tick: function (tiempo, delta) {
+          if (!delta) return;
+          const dt = Math.min(delta / 1000, 0.05);
+
+          const camEl = this.el.querySelector("[camera]");
+          if (!camEl) return;
+
+          // Bloquear posición local X/Z de la cámara en 0 para evitar que orbite o "vuele"
+          camEl.object3D.position.x = 0;
+          camEl.object3D.position.z = 0;
+
+          let ejeX = 0;     // Caminar izquierda / derecha
+          let ejeY = 0;     // Caminar adelante / atrás
+          let ejeGiroX = 0; // Girar cabeza izquierda / derecha
+          let ejeGiroY = 0; // Inclinar cabeza arriba / abajo
+
+          // A. Teclado (WASD/Flechas para caminar | Q/E y R/F para mover la cabeza)
+          if (this.teclas["KeyW"] || this.teclas["ArrowUp"]) ejeY -= 1;
+          if (this.teclas["KeyS"] || this.teclas["ArrowDown"]) ejeY += 1;
+          if (this.teclas["KeyA"] || this.teclas["ArrowLeft"]) ejeX -= 1;
+          if (this.teclas["KeyD"] || this.teclas["ArrowRight"]) ejeX += 1;
+          if (this.teclas["KeyQ"]) ejeGiroX -= 1;
+          if (this.teclas["KeyE"]) ejeGiroX += 1;
+          if (this.teclas["KeyR"]) ejeGiroY -= 1;
+          if (this.teclas["KeyF"]) ejeGiroY += 1;
+
+          // B. Mando Bluetooth GameSir
+          const DEADZONE = 0.22;
+          const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+          for (let i = 0; i < gamepads.length; i++) {
+            const gp = gamepads[i];
+            if (!gp || !gp.connected || !gp.axes || gp.axes.length < 2)
+              continue;
+
+            // Stick Izquierdo: Caminar (axes 0 y 1)
+            if (Math.abs(gp.axes[0]) > DEADZONE) ejeX = gp.axes[0];
+            if (Math.abs(gp.axes[1]) > DEADZONE) ejeY = gp.axes[1];
+
+            // Stick Derecho Horizontal: Girar cabeza izquierda/derecha (axis 2)
+            if (gp.axes.length >= 3 && Math.abs(gp.axes[2]) > DEADZONE) {
+              ejeGiroX = gp.axes[2];
+            }
+
+            // Stick Derecho Vertical: Mirar arriba/abajo (axis 3)
+            if (gp.axes.length >= 4 && Math.abs(gp.axes[3]) > DEADZONE) {
+              ejeGiroY = gp.axes[3];
+            }
+
+            // Cruceta (D-Pad) para caminar
+            if (gp.buttons && gp.buttons.length >= 16) {
+              if (gp.buttons[12] && gp.buttons[12].pressed) ejeY = -1;
+              if (gp.buttons[13] && gp.buttons[13].pressed) ejeY = 1;
+              if (gp.buttons[14] && gp.buttons[14].pressed) ejeX = -1;
+              if (gp.buttons[15] && gp.buttons[15].pressed) ejeX = 1;
+            }
+            break;
+          }
+
+          // 1. ROTACIÓN DE LA CABEZA EN EL LUGAR (sin desplazar al usuario)
+          const radPorSeg = THREE.MathUtils.degToRad(this.data.velocidadGiro);
+          const maxPitch = THREE.MathUtils.degToRad(65);
+          const enModoVR = this.el.sceneEl && this.el.sceneEl.is("vr-mode");
+          const lookControls = camEl.components["look-controls"];
+
+          if (!enModoVR && lookControls && lookControls.yawObject && lookControls.pitchObject) {
+            // En modo normal (PC/Celular 2D): rotamos directamente el pivote interno de look-controls
+            if (Math.abs(ejeGiroX) > 0.05) {
+              lookControls.yawObject.rotation.y -= ejeGiroX * radPorSeg * dt;
+            }
+            if (Math.abs(ejeGiroY) > 0.05) {
+              lookControls.pitchObject.rotation.x = THREE.MathUtils.clamp(
+                lookControls.pitchObject.rotation.x - ejeGiroY * radPorSeg * dt,
+                -maxPitch,
+                maxPitch
+              );
+            }
+          } else if (enModoVR) {
+            // En modo VR: rotamos el Rig sobre el eje vertical de la cabeza
+            if (Math.abs(ejeGiroX) > 0.05) {
+              this.el.object3D.rotation.y -= ejeGiroX * radPorSeg * dt;
+            }
+            if (Math.abs(ejeGiroY) > 0.05) {
+              this.pitchVR = THREE.MathUtils.clamp(
+                this.pitchVR - ejeGiroY * radPorSeg * dt,
+                -maxPitch,
+                maxPitch
+              );
+              camEl.object3D.rotation.x = this.pitchVR;
+            }
+          }
+
+          // 2. DESPLAZAMIENTO (solo cuando se acciona el stick izquierdo o WASD)
+          if (Math.abs(ejeX) < 0.05 && Math.abs(ejeY) < 0.05) return;
+
+          const camaraActiva = this.el.sceneEl.camera;
+          if (!camaraActiva) return;
+
+          camaraActiva.getWorldDirection(this.dirAdelante);
+          this.dirAdelante.y = 0;
+          if (this.dirAdelante.lengthSq() > 0.0001) {
+            this.dirAdelante.normalize();
+          }
+
+          this.dirDerecha
+            .crossVectors(this.dirAdelante, this.vectorArriba)
+            .normalize();
+
+          const avance = -ejeY;
+          const lateral = ejeX;
+
+          const dx =
+            (this.dirAdelante.x * avance + this.dirDerecha.x * lateral) *
+            this.data.velocidad *
+            dt;
+          const dz =
+            (this.dirAdelante.z * avance + this.dirDerecha.z * lateral) *
+            this.data.velocidad *
+            dt;
+
+          const pos = this.el.object3D.position;
+          pos.x = Math.max(-6.4, Math.min(6.4, pos.x + dx));
+          pos.z = Math.max(-8.8, Math.min(8.8, pos.z + dz));
+        },
+      });
     </script>
-</head>
+  </head>
 
-<body>
-    <a-scene background="color: #121212" renderer="colorManagement: true; exposure: 0.75">
+  <body>
+    <a-scene
+      background="color: #121212"
+      renderer="colorManagement: true; exposure: 0.75"
+    >
+      <a-assets>
+        <a-asset-item
+          id="sala-museo-glb"
+          src="assets/modelos/sala_museo.glb"
+        ></a-asset-item>
+        <a-asset-item id="pieza1" src="assets/modelos/Duck.glb"></a-asset-item>
+        <a-asset-item
+          id="pieza2"
+          src="assets/modelos/CesiumMan.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="pieza3"
+          src="assets/modelos/sarcosuchus_imperator.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="pieza4"
+          src="assets/modelos/fosil__tengkorak_macaca.glb"
+        ></a-asset-item>
+      </a-assets>
 
-        <a-assets>
-            <a-asset-item id="sala-museo-glb" src="assets/modelos/sala_museo.glb"></a-asset-item>
-            <a-asset-item id="pieza1" src="assets/modelos/Duck.glb"></a-asset-item>
-            <a-asset-item id="pieza2" src="assets/modelos/CesiumMan.glb"></a-asset-item>
-        </a-assets>
+      <!-- Iluminación tenue y cálida pensada para visores RV -->
+      <a-light type="ambient" color="#cfd8dc" intensity="0.40"></a-light>
+      <a-light
+        type="point"
+        color="#ffe0b2"
+        intensity="0.45"
+        position="0 4.2 0"
+        distance="18"
+      ></a-light>
+      <a-light
+        type="point"
+        color="#ffe0b2"
+        intensity="0.35"
+        position="0 4.2 -5.5"
+        distance="15"
+      ></a-light>
+      <a-light
+        type="point"
+        color="#ffe0b2"
+        intensity="0.35"
+        position="0 4.2 5.5"
+        distance="15"
+      ></a-light>
 
-        <!-- Iluminación tenue y cálida pensada para visores RV -->
-        <a-light type="ambient" color="#cfd8dc" intensity="0.40"></a-light>
-        <a-light type="point" color="#ffe0b2" intensity="0.45" position="0 4.2 0" distance="18"></a-light>
-        <a-light type="point" color="#ffe0b2" intensity="0.35" position="0 4.2 -5.5" distance="15"></a-light>
-        <a-light type="point" color="#ffe0b2" intensity="0.35" position="0 4.2 5.5" distance="15"></a-light>
+      <!-- Sistema de Cámara: wasd-controls desactivado en a-camera para no desfasar el pivote -->
+      <a-entity
+        id="cameraRig"
+        position="0 0 7.0"
+        control-locomocion="velocidad: 2.6; velocidadGiro: 85"
+      >
+        <a-camera
+          position="0 1.65 0"
+          look-controls="pointerLockEnabled: false"
+          wasd-controls="enabled: false"
+        >
+        </a-camera>
+      </a-entity>
 
-        <!-- Sistema de Cámara y Movimiento -->
-        <a-entity id="cameraRig" position="0 0 7.0" control-locomocion="velocidad: 2.6; velocidadGiro: 85">
-            <a-camera position="0 1.65 0" look-controls="pointerLockEnabled: false">
-            </a-camera>
-        </a-entity>
+      <!-- Habitación del Museo -->
+      <a-entity
+        id="sala-museo"
+        gltf-model="#sala-museo-glb"
+        position="0 0 0"
+        ajuste-visual-sala
+      ></a-entity>
 
-        <!-- Habitación del Museo con atenuador de brillo automático -->
-        <a-entity id="sala-museo" gltf-model="#sala-museo-glb" position="0 0 0" ajuste-visual-sala></a-entity>
+      <!-- ========================================================= -->
+      <!-- TARIMA CENTRAL: Esqueleto Principal + Cartel Grande       -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza3"
+        position="0 0.40 -1.0"
+        rotation="0 -90 0"
+        ajustar-al-pedestal="tamanoMax: 4.8"
+      ></a-entity>
+      <a-entity
+        position="0 1.05 2.47"
+        rotation="-30 0 0"
+        cartel-museo="titulo: Sarcosuchus Imperator; periodo: Cretácico Inferior (112 Ma); descripcion: Crocodilomorfo gigante de hasta 12 metros de longitud que habitó ríos tropicales."
+      ></a-entity>
 
-        <!-- EXHIBICIÓN 1 (Oeste): Modelo + Cartel Informativo -->
-        <a-entity gltf-model="#pieza1" position="-4.48 1.00 0" rotation="0 90 0" scale="1 1 1"></a-entity>
-        <a-entity position="-3.35 1.15 0" rotation="-25 90 0"
-            cartel-museo="titulo: Cráneo de Triceratops; periodo: Cretácico Superior (68 Ma); descripcion: Herbívoro ceratópsido caracterizado por su gran gola ósea y tres cuernos faciales defensivos.">
-        </a-entity>
+      <!-- ========================================================= -->
+      <!-- STAND CENTRO OESTE (Izquierda): Modelo + Cartel Grande    -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza1"
+        position="-5.44 1.00 0"
+        rotation="0 90 0"
+        ajustar-al-pedestal="tamanoMax: 1.1"
+      ></a-entity>
+      <a-entity
+        position="-4.47 1.05 0"
+        rotation="-30 90 0"
+        cartel-museo="titulo: Cráneo de Triceratops; periodo: Cretácico Superior (68 Ma); descripcion: Herbívoro ceratópsido caracterizado por su gran gola ósea y tres cuernos faciales defensivos."
+      ></a-entity>
 
-        <!-- EXHIBICIÓN 2 (Este): Modelo + Cartel Informativo -->
-        <a-entity gltf-model="#pieza2" position="4.48 1.00 0" rotation="0 -90 0" scale="1 1 1"></a-entity>
-        <a-entity position="3.35 1.15 0" rotation="-25 -90 0"
-            cartel-museo="titulo: Giganotosaurus Carolinii; periodo: Cretácico Superior (98 Ma); descripcion: Uno de los mayores terópodos carnívoros conocidos, hallado en la Patagonia argentina.">
-        </a-entity>
+      <!-- ========================================================= -->
+      <!-- STAND CENTRO ESTE (Derecha): Modelo + Cartel Grande       -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza2"
+        position="5.44 1.00 0"
+        rotation="0 -90 0"
+        ajustar-al-pedestal="tamanoMax: 1.3"
+      ></a-entity>
+      <a-entity
+        position="4.47 1.05 0"
+        rotation="-30 -90 0"
+        cartel-museo="titulo: Giganotosaurus Carolinii; periodo: Cretácico Superior (98 Ma); descripcion: Uno de los mayores terópodos carnívoros conocidos, hallado en la Patagonia argentina."
+      ></a-entity>
 
+      <!-- ========================================================= -->
+      <!-- STAND FONDO OESTE: Cuarto Modelo + Cartel Grande          -->
+      <!-- ========================================================= -->
+      <a-entity
+        gltf-model="#pieza4"
+        position="-5.44 1.00 -6.5"
+        rotation="0 90 0"
+        ajustar-al-pedestal="tamanoMax: 1.15"
+      ></a-entity>
+      <a-entity
+        position="-4.47 1.05 -6.5"
+        rotation="-30 90 0"
+        cartel-museo="titulo: Cráneo Paleontológico; periodo: Mesozoico; descripcion: Ejemplar fósil centrado y escalado automáticamente sobre el pedestal de exhibición."
+      ></a-entity>
     </a-scene>
-</body>
-
+  </body>
 </html>
